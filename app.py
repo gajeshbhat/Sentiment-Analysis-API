@@ -2,13 +2,14 @@ import pickle
 from flask import Flask
 from flask_restful import Resource, Api, reqparse
 from models.nltk_sentiment_nb import remove_noise, download_packages, stopwords, word_tokenize
-
+from models.nltk_vader import setup_vader, get_sentiment_vader, get_unimeasure_sentiment
 
 app = Flask(__name__)
 api = Api(app)
 
-# Setup NLTK (One time)
+# Setup NLTK and related packages(One time)
 download_packages()
+setup_vader()
 
 # Request Parsing setup
 parser = reqparse.RequestParser()
@@ -21,17 +22,16 @@ nb_senti_file.close()
 
 
 class SentimentNLTKNB(Resource):
-
     eng_stop_set = set(stopwords.words('english'))
 
     def post(self):
         args = parser.parse_args()
         tweet_data = str(args['data'])
-        return {'tweet': str(tweet_data),'sentiment': str(self.get_sentiment(tweet_data))}
+        return {'tweet': str(tweet_data), 'sentiment': str(self.get_sentiment(tweet_data))}
 
-    def get_sentiment(self,tweet):
+    def get_sentiment(self, tweet):
         clean_tweet = self.get_tokenized_tweet(tweet)
-        noise_clean_tokens = remove_noise(clean_tweet,self.eng_stop_set)
+        noise_clean_tokens = remove_noise(clean_tweet, self.eng_stop_set)
         nltk_token_tweets = self.get_nltk_tokens(noise_clean_tokens)
         return nb_senti_classifier.classify(nltk_token_tweets)
 
@@ -42,7 +42,21 @@ class SentimentNLTKNB(Resource):
         return word_tokenize(tweet)
 
 
+class SentimentNLTKVader(Resource):
+
+    def post(self):
+        args = parser.parse_args()
+        tweet_data = str(args['data'])
+        return {'tweet': str(tweet_data), 'sentiment_score': self.get_sentiment(tweet_data)}
+
+    def get_sentiment(self, tweet):
+        polarity_scores = get_sentiment_vader(tweet)
+        uni_final_score = get_unimeasure_sentiment(polarity_scores)
+        return {'overall_sentiment' : str(uni_final_score),'polarity_scores' : polarity_scores}
+
+
 api.add_resource(SentimentNLTKNB, '/sentiment')
+api.add_resource(SentimentNLTKVader, '/sentiment/vader')
 
 if __name__ == '__main__':
     app.run(debug=True)
