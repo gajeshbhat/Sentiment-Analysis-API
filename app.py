@@ -3,6 +3,7 @@ from flask import Flask
 from flask_restful import Resource, Api, reqparse
 from models.nltk_sentiment_nb import remove_noise, download_packages, stopwords, word_tokenize
 from models.nltk_vader import setup_vader, get_sentiment_vader, get_unimeasure_sentiment
+from models.textblob_sentiment import get_sentiment_details
 
 app = Flask(__name__)
 api = Api(app)
@@ -52,11 +53,23 @@ class SentimentNLTKVader(Resource):
     def get_sentiment(self, tweet):
         polarity_scores = get_sentiment_vader(tweet)
         uni_final_score = get_unimeasure_sentiment(polarity_scores)
-        return {'overall_sentiment' : str(uni_final_score),'polarity_scores' : polarity_scores}
+        return {'overall_sentiment': str(uni_final_score), 'polarity_scores': polarity_scores}
 
 
-api.add_resource(SentimentNLTKNB, '/sentiment')
+class SentimentTextBlob(Resource):
+
+    def post(self):
+        args = parser.parse_args()
+        tweet_data = str(args['data'])
+        return {'tweet': str(tweet_data), 'sentiment_scores': self.get_sentiment(tweet_data)}
+
+    def get_sentiment(self, tweet):
+        return get_sentiment_details(tweet)
+
+
+api.add_resource(SentimentNLTKNB, '/sentiment/nb')
 api.add_resource(SentimentNLTKVader, '/sentiment/vader')
+api.add_resource(SentimentTextBlob, '/sentiment/tb')
 
 if __name__ == '__main__':
     app.run(debug=True)
