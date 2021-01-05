@@ -1,6 +1,5 @@
 import pickle
 import flair
-import stanza
 from flask import Flask
 from flask_restful import Resource, Api, reqparse
 from models.nltk_sentiment_nb import remove_noise, download_packages, stopwords, word_tokenize
