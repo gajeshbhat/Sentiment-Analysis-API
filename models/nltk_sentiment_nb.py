@@ -1,6 +1,7 @@
 import re
 import string
 import nltk
+import stanza
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.tag import pos_tag
 from nltk.corpus import wordnet
@@ -65,3 +66,6 @@ def download_packages():
     nltk.download('averaged_perceptron_tagger')
     nltk.download('stopwords')
     nltk.download('punkt')
+    nltk.download('omw-1.4')
+    stanza.download('en')
+
