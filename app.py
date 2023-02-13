@@ -93,11 +93,44 @@ class SentimentFlair(Resource):
         cleaned_sentiment_data = self.get_cleaned_tweet(modelled_tweet)
         return cleaned_sentiment_data
 
+class SentimentStanfordCoreNLP(Resource):
+    def post(self):
+        args = parser.parse_args()
+        tweet_data = str(args['data'])
+        return {'tweet': str(tweet_data), 'sentiment_scores': self.get_sentiment(tweet_data, stan_pipeline)}
+
+    def get_sentiment(self, tweet, model):
+        doc = model(tweet)
+        sentiment_data = doc.sentences[0].sentiment
+        return sentiment_data
+
+class SentimentAll(Resource):
+    def post(self):
+        args = parser.parse_args()
+        tweet_data = str(args['data'])
+        return {'tweet': str(tweet_data), 'sentiment_scores': self.get_sentiment(tweet_data, stan_pipeline, flair_pre_model)}
+
+    def get_sentiment(self, tweet, stan_model, flair_model):
+        stan_doc = stan_model(tweet)
+        stan_sentiment_data = stan_doc.sentences[0].sentiment
+        flair_modelled_tweet = flair.data.Sentence(tweet)
+        flair_model.predict(flair_modelled_tweet)
+        flair_sentiment_data = self.get_cleaned_tweet(flair_modelled_tweet)
+        return {'stanford_core_nlp': stan_sentiment_data, 'flair': flair_sentiment_data}
+
+    def get_cleaned_tweet(self, modelled_tweet):
+        sentiment = modelled_tweet.labels
+        sentiment_data_list = str(sentiment[0]).split()
+        sentiment_data_dict = {'overall_sentiment': sentiment_data_list[0], 'polarity_score': sentiment_data_list[1]}
+        return sentiment_data_dict
+
 
 api.add_resource(SentimentNLTKNB, '/sentiment/nb')
 api.add_resource(SentimentNLTKVader, '/sentiment/vader')
 api.add_resource(SentimentTextBlob, '/sentiment/tb')
 api.add_resource(SentimentFlair, '/sentiment/fl')
+api.add_resource(SentimentStanfordCoreNLP, '/sentiment/scnlp')
+api.add_resource(SentimentAll, '/sentiment/all')
 
 if __name__ == '__main__':
     app.run(debug=True)
