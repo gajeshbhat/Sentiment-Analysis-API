@@ -4,10 +4,17 @@ from textblob import TextBlob
 # Install Textblob corpus : Goes in setups script : python -m textblob.download_corpora
 
 def is_non_english(tweet_blob):
-    tweet_lang = tweet_blob.detect_language()
-    if str(tweet_lang) != 'en':
-        return True
-    return False
+    try:
+        # Try to detect language if the method exists
+        if hasattr(tweet_blob, 'detect_language'):
+            tweet_lang = tweet_blob.detect_language()
+            if str(tweet_lang) != 'en':
+                return True
+        # If language detection is not available, assume English
+        return False
+    except Exception:
+        # If language detection fails, assume English
+        return False
 
 
 def get_eng_tweet_blob(tweet_blob):
