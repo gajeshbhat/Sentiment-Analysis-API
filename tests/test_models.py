@@ -8,7 +8,7 @@ import pickle
 
 # Import model functions
 from models.nltk_sentiment_nb import (
-    remove_noise, 
+    remove_noise,
     lemmatize_sentence,
     remove_hyperlinks,
     remove_at_mention,

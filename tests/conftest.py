@@ -10,35 +10,51 @@ from unittest.mock import Mock, patch
 # Add the parent directory to the path so we can import the app
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Mock heavy dependencies at module level before any imports
+sys.modules['stanza'] = Mock()
+sys.modules['flair'] = Mock()
+sys.modules['flair.models'] = Mock()
+sys.modules['flair.data'] = Mock()
+sys.modules['torch'] = Mock()
+
 @pytest.fixture(autouse=True)
 def setup_nltk_data():
-    """Download required NLTK data for tests, but skip in CI if not available."""
+    """Download required NLTK data for tests."""
     import nltk
-    import os
+    try:
+        nltk.data.find('corpora/stopwords')
+    except LookupError:
+        nltk.download('stopwords', quiet=True)
 
-    # Skip NLTK downloads in CI environment to avoid timeouts
-    if os.getenv('CI') or os.getenv('GITHUB_ACTIONS'):
-        return
+    try:
+        nltk.data.find('tokenizers/punkt')
+    except LookupError:
+        nltk.download('punkt', quiet=True)
 
-    nltk_packages = [
-        ('corpora/stopwords', 'stopwords'),
-        ('tokenizers/punkt', 'punkt'),
-        ('tokenizers/punkt_tab', 'punkt_tab'),
-        ('taggers/averaged_perceptron_tagger', 'averaged_perceptron_tagger'),
-        ('taggers/averaged_perceptron_tagger_eng', 'averaged_perceptron_tagger_eng'),
-        ('corpora/wordnet', 'wordnet'),
-        ('sentiment/vader_lexicon', 'vader_lexicon'),
-    ]
+    try:
+        nltk.data.find('tokenizers/punkt_tab')
+    except LookupError:
+        nltk.download('punkt_tab', quiet=True)
 
-    for path, package in nltk_packages:
-        try:
-            nltk.data.find(path)
-        except LookupError:
-            try:
-                nltk.download(package, quiet=True)
-            except Exception:
-                # Skip if download fails (e.g., in CI)
-                pass
+    try:
+        nltk.data.find('taggers/averaged_perceptron_tagger')
+    except LookupError:
+        nltk.download('averaged_perceptron_tagger', quiet=True)
+
+    try:
+        nltk.data.find('taggers/averaged_perceptron_tagger_eng')
+    except LookupError:
+        nltk.download('averaged_perceptron_tagger_eng', quiet=True)
+
+    try:
+        nltk.data.find('corpora/wordnet')
+    except LookupError:
+        nltk.download('wordnet', quiet=True)
+
+    try:
+        nltk.data.find('sentiment/vader_lexicon')
+    except LookupError:
+        nltk.download('vader_lexicon', quiet=True)
 
 @pytest.fixture
 def mock_models():
@@ -64,19 +80,8 @@ def mock_models():
 @pytest.fixture
 def app():
     """Create and configure a test Flask application."""
-    # Mock all heavy dependencies before importing app
-    with patch('flair.models.TextClassifier.load') as mock_flair_load, \
-         patch('stanza.Pipeline') as mock_stanza, \
-         patch('app.initialize_models') as mock_init, \
-         patch('builtins.open'), \
-         patch('pickle.load') as mock_pickle:
-
-        # Configure mocks
-        mock_flair_load.return_value = Mock()
-        mock_stanza.return_value = Mock()
-        mock_pickle.return_value = Mock()
-        mock_init.return_value = None
-
+    # Mock the model initialization to prevent actual model loading
+    with patch('app.initialize_models'):
         from app import app as flask_app
 
         # Configure the app for testing
